@@ -1,0 +1,5 @@
+Hello, World!
+This is a simple test file.
+А также русский текст для проверки.
+1234567890
+!@#$%^&*()
