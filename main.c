@@ -4,6 +4,8 @@
 #include <locale.h>
 #include <time.h>
 #include <limits.h>
+#include <windows.h>
+#include <direct.h>
 
 // ========== КОНСТАНТЫ И СТРУКТУРЫ ==========
 #define BYTE_SIZE 8
@@ -51,6 +53,11 @@ void decodeFile(FILE* input, FILE* output, Node* root, long bit_count);
 int compareFiles(FILE* file1, FILE* file2);
 void printStatistics(const char* filename, unsigned int frequencies[],
                      Code codes[], long original_size, long compressed_size);
+int huffman_compress_decompress(const char* input_filename,
+                               const char* encoded_filename,
+                               const char* decoded_filename);
+void createTestFiles();
+void showMenu();
 
 // ========== РЕАЛИЗАЦИЯ ФУНКЦИЙ ==========
 
@@ -475,46 +482,19 @@ void printStatistics(const char* filename, unsigned int frequencies[],
     }
 }
 
-// ========== ОСНОВНАЯ ПРОГРАММА ==========
-int main(int argc, char* argv[]) {
-    // Настройка локали для корректного отображения кириллицы
-    setlocale(LC_ALL, "ru_RU.UTF-8");
+// Основная функция сжатия/восстановления
+int huffman_compress_decompress(const char* input_filename,
+                               const char* encoded_filename,
+                               const char* decoded_filename) {
 
+    printf("\n==============================================\n");
+    printf("Обработка файла: %s\n", input_filename);
     printf("==============================================\n");
-    printf("Лабораторная работа: Алгоритм Хаффмана\n");
-    printf("Вариант на 1-7 баллов\n");
-    printf("==============================================\n");
-
-    // Имена файлов по умолчанию
-    const char* input_filename = "input.txt";
-    const char* encoded_filename = "encoded.bin";
-    const char* decoded_filename = "decoded.txt";
-
-    // Если переданы аргументы командной строки
-    if (argc > 1) {
-        input_filename = argv[1];
-        if (argc > 2) {
-            encoded_filename = argv[2];
-            if (argc > 3) {
-                decoded_filename = argv[3];
-            }
-        }
-    }
-
-    printf("Используемые файлы:\n");
-    printf("  Входной файл: %s\n", input_filename);
-    printf("  Сжатый файл:  %s\n", encoded_filename);
-    printf("  Выходной файл: %s\n", decoded_filename);
-    printf("\n");
 
     // Проверяем существование входного файла
     FILE* input_file = fopen(input_filename, "rb");
     if (input_file == NULL) {
         fprintf(stderr, "Ошибка: не удалось открыть файл '%s'\n", input_filename);
-        fprintf(stderr, "Создайте файл %s с текстом для сжатия или укажите другой файл\n",
-                input_filename);
-        fprintf(stderr, "Использование: %s [input.txt] [encoded.bin] [decoded.txt]\n",
-                argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -620,11 +600,168 @@ int main(int argc, char* argv[]) {
     freeHuffmanTree(root);
 
     printf("\n==============================================\n");
-    printf("Программа завершена успешно!\n");
-    printf("Для проверки можно сравнить файлы:\n");
-    printf("  fc /B %s %s  (Windows)\n", input_filename, decoded_filename);
-    printf("  diff %s %s     (Linux/Mac)\n", input_filename, decoded_filename);
+    printf("Обработка завершена успешно!\n");
     printf("==============================================\n");
+
+    return EXIT_SUCCESS;
+}
+
+// Создание тестовых файлов
+void createTestFiles() {
+    printf("\nСоздание тестовых файлов...\n");
+
+    // Создаем папку test, если ее нет
+    _mkdir("test");
+
+    // Тест 1: Простой текст
+    FILE* f1 = fopen("test\\test1.txt", "w");
+    fprintf(f1, "Hello, World!\nThis is a simple test file.\nА также русский текст для проверки.\n1234567890\n!@#$%%^&*()\n");
+    fclose(f1);
+    printf("  Создан: test\\test1.txt\n");
+
+    // Тест 2: Текст с повторениями
+    FILE* f2 = fopen("test\\test2.txt", "w");
+    for (int i = 0; i < 40; i++) fprintf(f2, "a");
+    fprintf(f2, "\n");
+    for (int i = 0; i < 20; i++) fprintf(f2, "b");
+    fprintf(f2, "\n");
+    for (int i = 0; i < 15; i++) fprintf(f2, "c");
+    fprintf(f2, "\n");
+    for (int i = 0; i < 10; i++) fprintf(f2, "d");
+    fprintf(f2, "\n");
+    for (int i = 0; i < 5; i++) fprintf(f2, "e");
+    fclose(f2);
+    printf("  Создан: test\\test2.txt\n");
+
+    // Тест 3: Смешанный текст
+    FILE* f3 = fopen("test\\test3.txt", "w");
+    fprintf(f3, "xK7!pL@2#mN$4%%qR^6&sT*8(uV)0_wY+1=aX-3[cZ]5{eB}7|dC9\\fA;'gS:\"hD,<iF>.jG/?kH\n");
+    fprintf(f3, "The quick brown fox jumps over the lazy dog 1234567890\n");
+    fprintf(f3, "Тест с кириллицей: Привет мир!\n");
+    fclose(f3);
+    printf("  Создан: test\\test3.txt\n");
+
+    // Тест 4: Пустой файл
+    FILE* f4 = fopen("test\\test4.txt", "w");
+    fclose(f4);
+    printf("  Создан: test\\test4.txt (пустой)\n");
+
+    // Тест 5: Большой файл
+    FILE* f5 = fopen("test\\test5.txt", "w");
+    for (int i = 0; i < 1000; i++) {
+        fprintf(f5, "Строка номер %d: Алгоритм Хаффмана - это алгоритм оптимального префиксного кодирования.\n", i+1);
+    }
+    fclose(f5);
+    printf("  Создан: test\\test5.txt (большой файл)\n");
+
+    printf("Все тестовые файлы созданы в папке test\\\n");
+}
+
+// Меню выбора
+void showMenu() {
+    int choice;
+
+    system("cls");
+    printf("==============================================\n");
+    printf("     ЛАБОРАТОРНАЯ РАБОТА: АЛГОРИТМ ХАФФМАНА\n");
+    printf("==============================================\n");
+    printf("\nДоступные тестовые файлы:\n");
+    printf("1. test1.txt - Простой текст\n");
+    printf("2. test2.txt - Текст с повторениями\n");
+    printf("3. test3.txt - Смешанный текст\n");
+    printf("4. test4.txt - Пустой файл\n");
+    printf("5. test5.txt - Большой файл\n");
+    printf("6. Запустить ВСЕ тесты\n");
+    printf("7. Создать/обновить тестовые файлы\n");
+    printf("8. Выйти из программы\n");
+    printf("\nВыберите вариант (1-8): ");
+
+    scanf("%d", &choice);
+
+    // Создаем папку results, если ее нет
+    _mkdir("results");
+
+    switch(choice) {
+        case 1:
+            huffman_compress_decompress("test\\test1.txt",
+                                       "results\\test1_encoded.bin",
+                                       "results\\test1_decoded.txt");
+            break;
+        case 2:
+            huffman_compress_decompress("test\\test2.txt",
+                                       "results\\test2_encoded.bin",
+                                       "results\\test2_decoded.txt");
+            break;
+        case 3:
+            huffman_compress_decompress("test\\test3.txt",
+                                       "results\\test3_encoded.bin",
+                                       "results\\test3_decoded.txt");
+            break;
+        case 4:
+            huffman_compress_decompress("test\\test4.txt",
+                                       "results\\test4_encoded.bin",
+                                       "results\\test4_decoded.txt");
+            break;
+        case 5:
+            huffman_compress_decompress("test\\test5.txt",
+                                       "results\\test5_encoded.bin",
+                                       "results\\test5_decoded.txt");
+            break;
+        case 6:
+            printf("\nЗапуск всех тестов...\n");
+            for (int i = 1; i <= 5; i++) {
+                char input[50], encoded[50], decoded[50];
+                sprintf(input, "test\\test%d.txt", i);
+                sprintf(encoded, "results\\test%d_encoded.bin", i);
+                sprintf(decoded, "results\\test%d_decoded.txt", i);
+
+                printf("\n\n=== ТЕСТ %d ===\n", i);
+                huffman_compress_decompress(input, encoded, decoded);
+
+                // Пауза между тестами
+                if (i < 5) {
+                    printf("\nНажмите Enter для продолжения...");
+                    getchar(); getchar();
+                }
+            }
+            break;
+        case 7:
+            createTestFiles();
+            break;
+        case 8:
+            printf("\nВыход из программы.\n");
+            exit(0);
+            break;
+        default:
+            printf("\nНеверный выбор! Попробуйте снова.\n");
+            break;
+    }
+
+    printf("\nНажмите Enter для возврата в меню...");
+    getchar(); getchar();
+    showMenu();
+}
+
+// ========== ОСНОВНАЯ ПРОГРАММА ==========
+int main(int argc, char* argv[]) {
+    // Настройка локали для корректного отображения кириллицы
+    setlocale(LC_ALL, "ru_RU.UTF-8");
+
+    // Проверка аргументов командной строки
+    if (argc == 4) {
+        // Использование: program.exe input.txt encoded.bin decoded.txt
+        return huffman_compress_decompress(argv[1], argv[2], argv[3]);
+    }
+    else if (argc == 1) {
+        // Запуск в режиме меню
+        showMenu();
+    }
+    else {
+        printf("Использование:\n");
+        printf("  1. Без аргументов: %s  (запуск с меню)\n", argv[0]);
+        printf("  2. С аргументами: %s input.txt encoded.bin decoded.txt\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
