@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 4.0)
-project(Laba2Daria C)
+cmake_minimum_required(VERSION 3.20)
+project(Laba2Daria)
 
 set(CMAKE_C_STANDARD 11)
 
